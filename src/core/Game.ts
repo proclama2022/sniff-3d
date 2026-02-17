@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AssetLoader, LoadedAssets } from './AssetLoader';
 import { InputManager } from './InputManager';
 import { ForestWorld } from '../world/ForestWorld';
-import { DogEntity } from '../entities/DogEntity';
+import { Dog } from '../entities/Dog';
 import { ScentSystem } from '../systems/ScentSystem';
 import { HUD } from '../ui/HUD';
 import { HomeScreen } from '../ui/HomeScreen';
@@ -21,7 +21,7 @@ export class Game {
   private inputManager!: InputManager;
 
   private world!: ForestWorld;
-  private dog!: DogEntity;
+  private dog!: Dog;
   private scentSystem!: ScentSystem;
 
   private hud!: HUD;
@@ -71,7 +71,7 @@ export class Game {
     this.world = new ForestWorld(this.scene, this.assets, this.isLowEnd);
 
     // Create dog
-    this.dog = new DogEntity();
+    this.dog = new Dog(this.assets.dog!);
     this.scene.add(this.dog.getMesh());
 
     // Create scent system
@@ -117,8 +117,8 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMapping = THREE.ReinhardToneMapping;
+    this.renderer.toneMappingExposure = 2.5;
 
     // Handle resize
     window.addEventListener('resize', this.handleResize.bind(this));

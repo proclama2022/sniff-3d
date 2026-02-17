@@ -3,9 +3,6 @@ import { useGameStore } from '../state/gameStore';
 import { GAME_SETTINGS, DogState } from '../constants';
 import gsap from 'gsap';
 
-/**
- * DogEntity - Entità cane completa con animazioni fluide e comportamento realistico
- */
 export class DogEntity {
   private mesh: THREE.Group;
   private targetPosition: THREE.Vector3 | null = null;
@@ -19,29 +16,26 @@ export class DogEntity {
   // Current animation
   public currentAnimation: string = 'idle';
   
-  // Materials for state changes
-  private toonMaterial: THREE.MeshToonMaterial;
-  private darkMaterial: THREE.MeshToonMaterial;
-  
   // References to animated parts
   private leftEar: THREE.Mesh | null = null;
   private rightEar: THREE.Mesh | null = null;
   private tailGroup: THREE.Group | null = null;
+  
+  // Shared gradient texture
+  private gradientTexture: THREE.Texture;
 
   constructor() {
-    // Colore Lagotto Romagnolo - beige/cioccolato
-    this.toonMaterial = this.createToonMaterial('#A67B5B');
-    this.darkMaterial = this.createToonMaterial('#2C1810');
+    this.gradientTexture = this.createToonGradient();
     
-    this.mesh = this.createDetailedDog();
+    this.mesh = this.createBeautifulDog();
+    this.mesh.scale.set(1.8, 1.8, 1.8);
     this.setupInitialPose();
   }
 
   private createToonMaterial(color: string): THREE.MeshToonMaterial {
-    const gradientTexture = this.createToonGradient();
     return new THREE.MeshToonMaterial({
       color,
-      gradientMap: gradientTexture,
+      gradientMap: this.gradientTexture,
     });
   }
 
@@ -66,193 +60,223 @@ export class DogEntity {
     return texture;
   }
 
-  private createDetailedDog(): THREE.Group {
+  private createBeautifulDog(): THREE.Group {
     const group = new THREE.Group();
     
-    // === CORPO ===
-    // Forma più realistica con petto pronunciato
-    const bodyGroup = new THREE.Group();
+    // === COLORI LAGOTTO ===
+    const mainFur = this.createToonMaterial('#D4C4A8'); // Crema chiaro
+    const curlyFur = this.createToonMaterial('#C4B498'); // Beige più scuro (macchie)
+    const darkFur = this.createToonMaterial('#8B7355'); // Marrone scuro
+    const noseMat = this.createToonMaterial('#2D2420'); // Nero naso
     
-    // Torace (più grosso)
-    const chestGeometry = new THREE.SphereGeometry(0.35, 16, 12);
-    chestGeometry.scale(1.1, 0.9, 1);
-    const chest = new THREE.Mesh(chestGeometry, this.toonMaterial);
-    chest.position.set(0, 0.38, 0.15);
-    chest.castShadow = true;
-    bodyGroup.add(chest);
+    // === CORPO - Low poly capsula ===
+    const bodyGeo = new THREE.CapsuleGeometry(0.35, 0.5, 6, 8);
+    bodyGeo.rotateX(Math.PI / 2);
+    const body = new THREE.Mesh(bodyGeo, mainFur);
+    body.position.set(0, 0.45, 0);
+    body.castShadow = true;
+    group.add(body);
     
-    // Addome (più snello)
-    const abdomenGeometry = new THREE.SphereGeometry(0.28, 14, 10);
-    abdomenGeometry.scale(0.9, 0.85, 1.2);
-    const abdomen = new THREE.Mesh(abdomenGeometry, this.toonMaterial);
-    abdomen.position.set(0, 0.35, -0.15);
-    abdomen.castShadow = true;
-    bodyGroup.add(abdomen);
-    
-    group.add(bodyGroup);
-    
-    // === TESTA ===
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.58, 0.5);
-    
-    // Cranio (rotondo tipico del Lagotto)
-    const skullGeometry = new THREE.SphereGeometry(0.22, 16, 12);
-    skullGeometry.scale(1, 0.95, 0.9);
-    const skull = new THREE.Mesh(skullGeometry, this.toonMaterial);
-    skull.castShadow = true;
-    skull.name = 'head';
-    headGroup.add(skull);
-    
-    // Muso (più pronunciato)
-    const snoutGeometry = new THREE.SphereGeometry(0.12, 12, 8);
-    snoutGeometry.scale(0.85, 0.75, 1.3);
-    const snout = new THREE.Mesh(snoutGeometry, this.toonMaterial);
-    snout.position.set(0, -0.05, 0.2);
-    snout.name = 'snout';
-    headGroup.add(snout);
-    
-    // Naso
-    const noseGeometry = new THREE.SphereGeometry(0.04, 8, 6);
-    const nose = new THREE.Mesh(noseGeometry, this.darkMaterial);
-    nose.position.set(0, -0.03, 0.32);
-    nose.name = 'nose';
-    headGroup.add(nose);
-    
-    // Occhi
-    const eyeGeometry = new THREE.SphereGeometry(0.035, 8, 6);
-    const eyeWhiteMaterial = new THREE.MeshBasicMaterial({ color: '#FFFFFF' });
-    const pupilGeometry = new THREE.SphereGeometry(0.02, 6, 4);
-    const pupilMaterial = new THREE.MeshBasicMaterial({ color: '#1A1A1A' });
-    
-    // Occhio sinistro
-    const leftEyeWhite = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
-    leftEyeWhite.position.set(-0.08, 0.05, 0.15);
-    leftEyeWhite.name = 'leftEye';
-    const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    leftPupil.position.set(-0.08, 0.05, 0.18);
-    leftEyeWhite.add(leftPupil);
-    headGroup.add(leftEyeWhite);
-    
-    // Occhio destro
-    const rightEyeWhite = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
-    rightEyeWhite.position.set(0.08, 0.05, 0.15);
-    rightEyeWhite.name = 'rightEye';
-    const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    rightPupil.position.set(0.08, 0.05, 0.18);
-    rightEyeWhite.add(rightPupil);
-    headGroup.add(rightEyeWhite);
-    
-    // === ORECCHIE (tipiche del Lagotto - pendenti) ===
-    const earGeometry = this.createEarGeometry();
-    
-    const leftEar = new THREE.Mesh(earGeometry, this.toonMaterial);
-    leftEar.position.set(-0.18, 0.08, 0.05);
-    leftEar.rotation.set(0.3, 0, -0.6);
-    leftEar.castShadow = true;
-    leftEar.name = 'leftEar';
-    headGroup.add(leftEar);
-    
-    const rightEar = new THREE.Mesh(earGeometry, this.toonMaterial);
-    rightEar.position.set(0.18, 0.08, 0.05);
-    rightEar.rotation.set(-0.3, 0, 0.6);
-    rightEar.castShadow = true;
-    rightEar.name = 'rightEar';
-    headGroup.add(rightEar);
-    
-    group.add(headGroup);
-    
-    // === ZAMPE ===
-    const legPositions = [
-      { name: 'frontLeft', x: -0.15, z: 0.18 },
-      { name: 'frontRight', x: 0.15, z: 0.18 },
-      { name: 'backLeft', x: -0.15, z: -0.18 },
-      { name: 'backRight', x: 0.15, z: -0.18 },
+    // Macchie arricciate sul corpo (low-poly spheres)
+    const spotPositions = [
+      { x: 0.2, y: 0.55, z: 0.1, s: 0.12 },
+      { x: -0.15, y: 0.5, z: -0.15, s: 0.1 },
+      { x: 0.1, y: 0.4, z: 0.25, s: 0.08 },
     ];
-    
-    legPositions.forEach((pos) => {
-      const legGroup = this.createLeg();
-      legGroup.position.set(pos.x, 0.18, pos.z);
-      legGroup.name = pos.name;
-      group.add(legGroup);
+    spotPositions.forEach(p => {
+      const spotGeo = new THREE.IcosahedronGeometry(p.s, 1);
+      const spot = new THREE.Mesh(spotGeo, curlyFur);
+      spot.position.set(p.x, p.y, p.z);
+      spot.scale.set(1, 0.6, 1);
+      group.add(spot);
     });
     
-    // === CODA (arricciata tipica del Lagotto) ===
-    const tailGroup = this.createCurlyTail();
-    tailGroup.position.set(0, 0.45, -0.35);
-    tailGroup.name = 'tail';
-    group.add(tailGroup);
+    // === COLLO ===
+    const neckGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.15, 8);
+    const neck = new THREE.Mesh(neckGeo, mainFur);
+    neck.position.set(0, 0.55, 0.32);
+    group.add(neck);
     
-    return group;
-  }
-
-  private createEarGeometry(): THREE.BufferGeometry {
-    // Forma triangolare arrotondata
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.quadraticCurveTo(0.08, 0.15, 0, 0.22);
-    shape.quadraticCurveTo(-0.08, 0.15, 0, 0);
+    // === TESTA - Low poly sfera ===
+    const headGeo = new THREE.IcosahedronGeometry(0.26, 2);
+    const head = new THREE.Mesh(headGeo, mainFur);
+    head.position.set(0, 0.65, 0.45);
+    head.scale.set(1, 0.9, 0.95);
+    head.castShadow = true;
+    head.name = 'head';
+    group.add(head);
     
-    const extrudeSettings = {
-      depth: 0.03,
-      bevelEnabled: true,
-      bevelThickness: 0.01,
-      bevelSize: 0.01,
-      bevelSegments: 2,
-    };
+    // === MUSO - Caratteristico del Lagotto ===
+    const snoutGeo = new THREE.CapsuleGeometry(0.08, 0.1, 4, 6);
+    snoutGeo.rotateX(Math.PI / 2);
+    const snout = new THREE.Mesh(snoutGeo, curlyFur);
+    snout.position.set(0, 0.58, 0.65);
+    snout.name = 'snout';
+    group.add(snout);
     
-    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  }
-
-  private createLeg(): THREE.Group {
-    const legGroup = new THREE.Group();
+    // === NASO ===
+    const noseGeo = new THREE.BoxGeometry(0.08, 0.05, 0.06);
+    const nose = new THREE.Mesh(noseGeo, noseMat);
+    nose.position.set(0, 0.58, 0.74);
+    nose.name = 'nose';
+    group.add(nose);
     
-    // Coscia
-    const thighGeometry = new THREE.CylinderGeometry(0.06, 0.05, 0.12, 8);
-    const thigh = new THREE.Mesh(thighGeometry, this.toonMaterial);
-    thigh.position.y = 0.12;
-    thigh.castShadow = true;
-    legGroup.add(thigh);
+    // === OCCHI - Espressivi, low-poly ===
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.055, 8, 6);
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#FFFFFF' });
+    const pupilGeo = new THREE.SphereGeometry(0.03, 6, 4);
+    const pupilMat = new THREE.MeshBasicMaterial({ color: '#3D2817' });
+    const highlightGeo = new THREE.SphereGeometry(0.012, 4, 3);
+    const highlightMat = new THREE.MeshBasicMaterial({ color: '#FFFFFF' });
     
-    // Zampa
-    const pawGeometry = new THREE.CylinderGeometry(0.045, 0.04, 0.12, 8);
-    const paw = new THREE.Mesh(pawGeometry, this.toonMaterial);
-    paw.position.y = 0.04;
-    paw.castShadow = true;
-    legGroup.add(paw);
+    // Occhio sinistro
+    const leftEye = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+    leftEye.position.set(-0.1, 0.68, 0.62);
+    const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+    leftPupil.position.z = 0.03;
+    leftEye.add(leftPupil);
+    const leftHl = new THREE.Mesh(highlightGeo, highlightMat);
+    leftHl.position.set(0.015, 0.015, 0.05);
+    leftEye.add(leftHl);
+    leftEye.name = 'leftEye';
+    group.add(leftEye);
     
-    // Piede
-    const footGeometry = new THREE.SphereGeometry(0.04, 6, 4);
-    footGeometry.scale(1.2, 0.5, 1.4);
-    const foot = new THREE.Mesh(footGeometry, this.toonMaterial);
-    foot.position.set(0, 0, 0.02);
-    legGroup.add(foot);
+    // Occhio destro
+    const rightEye = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+    rightEye.position.set(0.1, 0.68, 0.62);
+    const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+    rightPupil.position.z = 0.03;
+    rightEye.add(rightPupil);
+    const rightHl = new THREE.Mesh(highlightGeo, highlightMat);
+    rightHl.position.set(0.015, 0.015, 0.05);
+    rightEye.add(rightHl);
+    rightEye.name = 'rightEye';
+    group.add(rightEye);
     
-    return legGroup;
-  }
-
-  private createCurlyTail(): THREE.Group {
+    // === SOVRACCIGLIA - pelo arruffato ===
+    const browGeo = new THREE.BoxGeometry(0.08, 0.025, 0.03);
+    const leftBrow = new THREE.Mesh(browGeo, darkFur);
+    leftBrow.position.set(-0.1, 0.73, 0.58);
+    leftBrow.rotation.z = 0.2;
+    group.add(leftBrow);
+    
+    const rightBrow = new THREE.Mesh(browGeo.clone(), darkFur);
+    rightBrow.position.set(0.1, 0.73, 0.58);
+    rightBrow.rotation.z = -0.2;
+    group.add(rightBrow);
+    
+    // === ORECCHIE - Pendenti con pelo arricciato ===
+    const earGeo = new THREE.ConeGeometry(0.12, 0.25, 6);
+    
+    const leftEar = new THREE.Mesh(earGeo.clone(), mainFur);
+    leftEar.position.set(-0.22, 0.55, 0.38);
+    leftEar.rotation.set(0.5, 0.3, -1.0);
+    leftEar.castShadow = true;
+    leftEar.name = 'leftEar';
+    group.add(leftEar);
+    
+    const rightEar = new THREE.Mesh(earGeo.clone(), mainFur);
+    rightEar.position.set(0.22, 0.55, 0.38);
+    rightEar.rotation.set(-0.5, -0.3, 1.0);
+    rightEar.castShadow = true;
+    rightEar.name = 'rightEar';
+    group.add(rightEar);
+    
+    // Ciuffi di pelo sulle orecchie
+    const tuftGeo = new THREE.TetrahedronGeometry(0.06);
+    const leftTuft = new THREE.Mesh(tuftGeo, curlyFur);
+    leftTuft.position.set(-0.25, 0.48, 0.35);
+    leftTuft.rotation.set(0.3, 0, 0.5);
+    group.add(leftTuft);
+    
+    const rightTuft = new THREE.Mesh(tuftGeo.clone(), curlyFur);
+    rightTuft.position.set(0.25, 0.48, 0.35);
+    rightTuft.rotation.set(0.3, 0, -0.5);
+    group.add(rightTuft);
+    
+    // === ZAMPE ANTERIORI ===
+    const legGeo = new THREE.CapsuleGeometry(0.055, 0.2, 4, 6);
+    legGeo.rotateX(Math.PI * 0.05);
+    
+    const frontLeftLeg = new THREE.Mesh(legGeo.clone(), mainFur);
+    frontLeftLeg.position.set(-0.13, 0.15, 0.2);
+    frontLeftLeg.castShadow = true;
+    frontLeftLeg.name = 'frontLeft';
+    group.add(frontLeftLeg);
+    
+    const frontRightLeg = new THREE.Mesh(legGeo.clone(), mainFur);
+    frontRightLeg.position.set(0.13, 0.15, 0.2);
+    frontRightLeg.castShadow = true;
+    frontRightLeg.name = 'frontRight';
+    group.add(frontRightLeg);
+    
+    // === ZAMPE POSTERIORI ===
+    const backLegGeo = new THREE.CapsuleGeometry(0.06, 0.22, 4, 6);
+    backLegGeo.rotateX(Math.PI * 0.05);
+    
+    const backLeftLeg = new THREE.Mesh(backLegGeo.clone(), mainFur);
+    backLeftLeg.position.set(-0.13, 0.15, -0.2);
+    backLeftLeg.castShadow = true;
+    backLeftLeg.name = 'backLeft';
+    group.add(backLeftLeg);
+    
+    const backRightLeg = new THREE.Mesh(backLegGeo.clone(), mainFur);
+    backRightLeg.position.set(0.13, 0.15, -0.2);
+    backRightLeg.castShadow = true;
+    backRightLeg.name = 'backRight';
+    group.add(backRightLeg);
+    
+    // === ZAMPELLINE ===
+    const pawGeo = new THREE.BoxGeometry(0.08, 0.03, 0.1);
+    const pawMat = this.createToonMaterial('#B8A890');
+    
+    const pawPositions = [
+      { x: -0.13, z: 0.32, name: 'pawFL' },
+      { x: 0.13, z: 0.32, name: 'pawFR' },
+      { x: -0.13, z: -0.32, name: 'pawBL' },
+      { x: 0.13, z: -0.32, name: 'pawBR' },
+    ];
+    pawPositions.forEach(p => {
+      const paw = new THREE.Mesh(pawGeo.clone(), pawMat);
+      paw.position.set(p.x, 0.015, p.z);
+      paw.castShadow = true;
+      group.add(paw);
+    });
+    
+    // === CODA - Arricciata caratteristica ===
     const tailGroup = new THREE.Group();
+    tailGroup.name = 'tail';
     
-    // Creiamo una coda arricciata usando segmenti
-    const segments = 6;
-    for (let i = 0; i < segments; i++) {
-      const t = i / segments;
-      const angle = t * Math.PI * 1.5;
+    const tailSegments = 5;
+    for (let i = 0; i < tailSegments; i++) {
+      const t = i / (tailSegments - 1);
+      const angle = t * Math.PI * 1.6;
       const radius = 0.06 + t * 0.02;
-      const height = t * 0.15;
+      const height = t * 0.16;
       
-      const segmentGeometry = new THREE.SphereGeometry(0.025 - t * 0.005, 6, 4);
-      const segment = new THREE.Mesh(segmentGeometry, this.toonMaterial);
-      segment.position.set(
+      const size = 0.035 - t * 0.006;
+      const segGeo = new THREE.IcosahedronGeometry(size, 0);
+      const seg = new THREE.Mesh(segGeo, mainFur);
+      seg.position.set(
         Math.sin(angle) * radius,
         height,
         -Math.cos(angle) * radius * 0.5
       );
-      segment.castShadow = true;
-      tailGroup.add(segment);
+      seg.castShadow = true;
+      tailGroup.add(seg);
     }
     
-    return tailGroup;
+    tailGroup.position.set(0, 0.45, -0.38);
+    group.add(tailGroup);
+    
+    // === CIUFFO SULLA TESTA (caratteristico Lagotto) ===
+    const topTuftGeo = new THREE.ConeGeometry(0.05, 0.08, 4);
+    const topTuft = new THREE.Mesh(topTuftGeo, curlyFur);
+    topTuft.position.set(0, 0.88, 0.4);
+    topTuft.rotation.x = -0.2;
+    group.add(topTuft);
+    
+    return group;
   }
 
   private setupInitialPose(): void {
@@ -260,15 +284,11 @@ export class DogEntity {
     this.mesh.rotation.set(0, 0, 0);
     
     // Find and store references to animated parts
-    const headGroup = this.mesh.children[1] as THREE.Group;
-    if (headGroup) {
-      headGroup.children.forEach(child => {
-        if (child.name === 'leftEar') this.leftEar = child as THREE.Mesh;
-        if (child.name === 'rightEar') this.rightEar = child as THREE.Mesh;
-      });
-    }
-    
-    this.tailGroup = this.mesh.children.find(c => c.name === 'tail') as THREE.Group;
+    this.mesh.traverse((child) => {
+      if (child.name === 'leftEar') this.leftEar = child as THREE.Mesh;
+      if (child.name === 'rightEar') this.rightEar = child as THREE.Mesh;
+      if (child.name === 'tail') this.tailGroup = child as THREE.Group;
+    });
   }
 
   public getMesh(): THREE.Group {
@@ -601,4 +621,3 @@ export class DogEntity {
     });
   }
 }
-// Force rebuild

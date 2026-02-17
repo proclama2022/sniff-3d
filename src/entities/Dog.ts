@@ -7,16 +7,46 @@ export class Dog {
   private mesh: THREE.Group;
   private currentAnimation: string = 'idle';
   private targetPosition: THREE.Vector3 | null = null;
+  private baseScale: number = 1;
 
   constructor(dogModel: THREE.Group) {
     this.mesh = dogModel.clone();
+    
+    // Abilita ombre su tutti i mesh del modello
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    
+    // Calcola bounding box
+    const box = new THREE.Box3().setFromObject(this.mesh);
+    const size = box.getSize(new THREE.Vector3());
+    console.log('🐕 Model size:', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+    
+    // Scala a dimensione corretta per il gioco
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = 1.2; // Aumentato da 1.0 a 1.2
+    this.baseScale = targetSize / maxDim;
+    this.mesh.scale.set(this.baseScale, this.baseScale, this.baseScale);
+    
+    // Centra il modello sul terreno
+    box.setFromObject(this.mesh);
+    const center = box.getCenter(new THREE.Vector3());
+    this.mesh.position.x = -center.x;
+    this.mesh.position.z = -center.z;
+    this.mesh.position.y = -box.min.y + 0.2; // Alzato di 20cm dal terreno
+    
+    // Ruota per guardare in avanti (Z positivo)
+    this.mesh.rotation.y = Math.PI;
+    
+    console.log('🐕 Dog positioned - scale:', this.baseScale.toFixed(3), 'y:', this.mesh.position.y.toFixed(3));
     this.setupAnimations();
   }
 
   private setupAnimations(): void {
-    // Setup initial state
-    this.mesh.position.set(0, 0, 0);
-    this.mesh.rotation.set(0, 0, 0);
+    // Non resettare posizione/rotazione - già impostate
   }
 
   public getMesh(): THREE.Group {
@@ -41,26 +71,22 @@ export class Dog {
     if (this.targetPosition) {
       const direction = new THREE.Vector3()
         .subVectors(this.targetPosition, this.mesh.position);
-      direction.y = 0; // Keep on ground
+      direction.y = 0;
 
       const distance = direction.length();
 
       if (distance > GAME_SETTINGS.dog.targetReachedThreshold) {
-        // Normalize and move
         direction.normalize();
         const moveAmount = GAME_SETTINGS.dog.moveSpeed * deltaTime;
         
-        this.mesh.position.add(direction.multiplyScalar(Math.min(moveAmount, distance)));
+        this.mesh.position.add(direction.clone().multiplyScalar(Math.min(moveAmount, distance)));
 
-        // Rotate to face direction
+        // Rotate to face direction (smooth)
         const targetRotation = Math.atan2(direction.x, direction.z);
-        this.mesh.rotation.y = THREE.MathUtils.lerp(
-          this.mesh.rotation.y,
-          targetRotation,
-          GAME_SETTINGS.dog.rotationSpeed * deltaTime
-        );
+        const rotationDiff = targetRotation - this.mesh.rotation.y;
+        const normalizedDiff = Math.atan2(Math.sin(rotationDiff), Math.cos(rotationDiff));
+        this.mesh.rotation.y += normalizedDiff * GAME_SETTINGS.dog.rotationSpeed * deltaTime;
 
-        // Update store position
         store.setDogPosition({
           x: this.mesh.position.x,
           y: this.mesh.position.y,
@@ -68,12 +94,10 @@ export class Dog {
         });
         store.setDogMoving(true);
 
-        // Play walk animation
         if (this.currentAnimation !== 'walk') {
           this.playWalkAnimation();
         }
       } else {
-        // Reached target
         this.targetPosition = null;
         store.setDogTarget(null);
         store.setDogMoving(false);
@@ -89,39 +113,41 @@ export class Dog {
   }
 
   private updateEmotionalVisual(state: DogState): void {
-    // Simple visual feedback based on state
-    const head = this.mesh.children[1] as THREE.Mesh; // Head
+    // Movimento body intero invece di cercare parti specifiche
+    const time = Date.now() * 0.001;
     
     switch (state) {
       case DogState.CURIOUS:
-        // Tilt head slightly
-        head.rotation.z = Math.sin(Date.now() * 0.005) * 0.1;
+        // Leggero tilt del corpo
+        this.mesh.rotation.z = Math.sin(time * 3) * 0.05;
         break;
       case DogState.CONVINCED:
-        // More animated head movement
-        head.rotation.z = Math.sin(Date.now() * 0.01) * 0.15;
+        this.mesh.rotation.z = Math.sin(time * 5) * 0.08;
         break;
       case DogState.ALMOST:
-        // Excited bobbing
-        this.mesh.position.y = Math.abs(Math.sin(Date.now() * 0.01)) * 0.1;
+        // Saltelli eccitati
+        const bounce = Math.abs(Math.sin(time * 8)) * 0.05;
+        this.mesh.position.y = bounce;
+        this.mesh.rotation.z = Math.sin(time * 6) * 0.1;
         break;
       case DogState.CONFUSED:
-        // Shake head
-        head.rotation.z = Math.sin(Date.now() * 0.02) * 0.2;
+        this.mesh.rotation.z = Math.sin(time * 10) * 0.15;
         break;
       case DogState.NEUTRAL:
       default:
-        head.rotation.z = 0;
+        this.mesh.rotation.z *= 0.9; // Torna a zero gradualmente
         break;
     }
   }
 
   public playIdleAnimation(): void {
     this.currentAnimation = 'idle';
-    // Subtle breathing animation
+    gsap.killTweensOf(this.mesh.scale);
+    // Respirazione leggera
     gsap.to(this.mesh.scale, {
-      y: 1.02,
-      duration: 1.5,
+      x: this.baseScale * 1.01,
+      z: this.baseScale * 1.01,
+      duration: 2,
       ease: 'sine.inOut',
       repeat: -1,
       yoyo: true,
@@ -130,21 +156,29 @@ export class Dog {
 
   public playWalkAnimation(): void {
     this.currentAnimation = 'walk';
-    // Stop idle animation
     gsap.killTweensOf(this.mesh.scale);
-    this.mesh.scale.set(1, 1, 1);
+    this.mesh.scale.set(this.baseScale, this.baseScale, this.baseScale);
   }
 
   public playSniffAnimation(): void {
     this.currentAnimation = 'sniff';
     
-    // Head bob sniffing animation
-    const head = this.mesh.children[1];
-    gsap.to(head.position, {
-      z: head.position.z + 0.1,
-      duration: 0.2,
+    // Movimento in avanti e indietro
+    const originalZ = this.mesh.position.z;
+    gsap.to(this.mesh.position, {
+      z: originalZ + 0.08,
+      duration: 0.15,
       ease: 'sine.inOut',
-      repeat: 3,
+      repeat: 5,
+      yoyo: true,
+    });
+    
+    // Leggero abbassamento
+    gsap.to(this.mesh.position, {
+      y: -0.03,
+      duration: 0.1,
+      ease: 'sine.inOut',
+      repeat: 10,
       yoyo: true,
     });
   }
@@ -152,70 +186,56 @@ export class Dog {
   public playDigAnimation(onComplete?: () => void): void {
     this.currentAnimation = 'dig';
     
-    // Digging animation - bob up and down
+    const originalY = this.mesh.position.y;
     gsap.to(this.mesh.position, {
-      y: -0.1,
-      duration: 0.15,
+      y: originalY - 0.08,
+      duration: 0.12,
       ease: 'power2.inOut',
-      repeat: 4,
+      repeat: 6,
       yoyo: true,
       onComplete: () => {
-        this.mesh.position.y = 0;
+        this.mesh.position.y = originalY;
         if (onComplete) onComplete();
       },
-    });
-
-    // Paw movement simulation via scale
-    gsap.to(this.mesh.scale, {
-      y: 0.95,
-      duration: 0.1,
-      ease: 'power2.inOut',
-      repeat: 7,
-      yoyo: true,
     });
   }
 
   public playExcitedAnimation(): void {
     this.currentAnimation = 'excited';
     
-    // Happy bounce
+    const originalY = this.mesh.position.y;
     gsap.to(this.mesh.position, {
-      y: 0.3,
-      duration: 0.2,
+      y: originalY + 0.25,
+      duration: 0.25,
       ease: 'power2.out',
       yoyo: true,
-      repeat: 2,
+      repeat: 3,
       onComplete: () => {
-        this.mesh.position.y = 0;
-        this.playIdleAnimation();
+        this.mesh.position.y = originalY;
+        this.currentAnimation = 'idle';
       },
     });
-
-    // Tail wag (rotate tail)
-    const tail = this.mesh.children[this.mesh.children.length - 1];
-    if (tail) {
-      gsap.to(tail.rotation, {
-        z: tail.rotation.z + Math.PI * 2,
-        duration: 0.5,
-        ease: 'power2.inOut',
-      });
-    }
+    
+    // Rotazione felice
+    gsap.to(this.mesh.rotation, {
+      y: this.mesh.rotation.y + Math.PI * 2,
+      duration: 0.8,
+      ease: 'power2.inOut',
+    });
   }
 
   public playConfusedAnimation(): void {
     this.currentAnimation = 'confused';
     
-    // Head shake
-    const head = this.mesh.children[1];
-    gsap.to(head.rotation, {
-      y: head.rotation.y + 0.3,
-      duration: 0.1,
+    gsap.to(this.mesh.rotation, {
+      z: 0.3,
+      duration: 0.15,
       ease: 'sine.inOut',
       repeat: 5,
       yoyo: true,
       onComplete: () => {
-        head.rotation.y = 0;
-        this.playIdleAnimation();
+        this.mesh.rotation.z = 0;
+        this.currentAnimation = 'idle';
       },
     });
   }

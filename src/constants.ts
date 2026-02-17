@@ -2,8 +2,8 @@
 export const COLORS = {
   // Ambientazione bosco calda
   grass: {
-    light: '#7CB342',
-    dark: '#558B2F',
+    light: '#8BC34A',
+    dark: '#7CB342',
   },
   dirt: {
     light: '#8D6E63',

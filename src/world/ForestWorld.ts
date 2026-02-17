@@ -71,8 +71,8 @@ export class ForestWorld {
     }
     groundGeometry.computeVertexNormals();
 
-    const groundMaterial = new THREE.MeshToonMaterial({
-      color: COLORS.grass.dark,
+    const groundMaterial = new THREE.MeshLambertMaterial({
+      color: COLORS.grass.light,
       map: this.assets.textures.grass,
     });
 
@@ -111,17 +111,21 @@ export class ForestWorld {
   }
 
   private createLighting(): void {
-    // Warm hemisphere light for ambient
+    // Luce ambientale forte per schiarire tutto
+    const ambientLight = new THREE.AmbientLight('#FFFFFF', 2.0);
+    this.scene.add(ambientLight);
+
+    // Warm hemisphere light per cielo/terreno
     const hemiLight = new THREE.HemisphereLight(
-      COLORS.sky.top,
-      COLORS.grass.dark,
-      0.6
+      '#FFFFFF',  // Cielo bianco
+      '#B8A878',  // Terreno chiaro
+      2.5
     );
     this.scene.add(hemiLight);
 
-    // Soft directional light for shadows
-    const dirLight = new THREE.DirectionalLight('#FFF5E1', 1.0);
-    dirLight.position.set(10, 20, 10);
+    // Luce direzionale principale (sole)
+    const dirLight = new THREE.DirectionalLight('#FFFAF0', 3.0);
+    dirLight.position.set(15, 25, 15);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = this.settings.shadowMapSize;
     dirLight.shadow.mapSize.height = this.settings.shadowMapSize;
@@ -133,6 +137,16 @@ export class ForestWorld {
     dirLight.shadow.camera.bottom = -20;
     dirLight.shadow.bias = -0.0001;
     this.scene.add(dirLight);
+    
+    // Fill light dal lato opposto
+    const fillLight = new THREE.DirectionalLight('#C8E0FF', 1.5);
+    fillLight.position.set(-15, 20, -10);
+    this.scene.add(fillLight);
+    
+    // Luce dal basso per evitare zone completamente nere
+    const bottomLight = new THREE.DirectionalLight('#FFFFFF', 0.8);
+    bottomLight.position.set(0, -10, 0);
+    this.scene.add(bottomLight);
   }
 
   private createFog(): void {

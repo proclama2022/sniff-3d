@@ -45,16 +45,45 @@ export class AssetLoader {
       },
     };
 
-    // For now, we'll create procedural assets
-    // Later these will be replaced with actual loaded assets
-
     // Create procedural textures
     assets.textures.grass = this.createProceduralGrassTexture();
     assets.textures.dirt = this.createProceduralDirtTexture();
     assets.textures.bark = this.createProceduralBarkTexture();
 
-    // Create procedural models
-    assets.dog = this.createProceduralDog();
+    // Load dog GLB model
+    try {
+      const dogGltf = await this.gltfLoader.loadAsync('/sniff-3d/dog.glb');
+      assets.dog = dogGltf.scene;
+      
+      // Fix materiali del modello GLB per renderizzazione corretta
+      assets.dog.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          
+          // Assicura che i materiali usino il color space corretto
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+              if (mat instanceof THREE.MeshStandardMaterial) {
+                mat.needsUpdate = true;
+                // Aumenta roughness per ricevere più luce
+                mat.roughness = Math.min(mat.roughness, 0.8);
+              }
+            });
+          } else if (child.material instanceof THREE.MeshStandardMaterial) {
+            child.material.needsUpdate = true;
+            child.material.roughness = Math.min(child.material.roughness, 0.8);
+          }
+        }
+      });
+      
+      console.log('🐕 Dog GLB model loaded successfully!');
+    } catch (error) {
+      console.error('Failed to load dog model, using procedural:', error);
+      assets.dog = this.createProceduralDog();
+    }
+
+    // Create procedural models for other assets
     assets.truffleCommon = this.createProceduralTruffle(false);
     assets.truffleRare = this.createProceduralTruffle(true);
     assets.treeModels.push(this.createProceduralTree());
@@ -325,14 +354,14 @@ export class AssetLoader {
     canvas.height = 1;
     const ctx = canvas.getContext('2d')!;
 
-    // 4-step gradient for cartoon look
-    ctx.fillStyle = '#333333';
+    // 4-step gradient - più chiaro per evitare zone nere
+    ctx.fillStyle = '#888888';
     ctx.fillRect(0, 0, 1, 1);
-    ctx.fillStyle = '#666666';
+    ctx.fillStyle = '#AAAAAA';
     ctx.fillRect(1, 0, 1, 1);
-    ctx.fillStyle = '#999999';
-    ctx.fillRect(2, 0, 1, 1);
     ctx.fillStyle = '#CCCCCC';
+    ctx.fillRect(2, 0, 1, 1);
+    ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(3, 0, 1, 1);
 
     const texture = new THREE.CanvasTexture(canvas);
