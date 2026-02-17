@@ -5,17 +5,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist"
   },
+  "homepage": "https://proclama2022.github.io/sniff-3d",
   "dependencies": {
-    "three": "^0.160.0",
-    "zustand": "^4.4.7",
     "gsap": "^3.12.4",
-    "howler": "^2.2.4"
+    "howler": "^2.2.4",
+    "three": "^0.160.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@types/three": "^0.160.0",
     "@types/howler": "^2.2.11",
+    "@types/three": "^0.160.0",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10"
   }

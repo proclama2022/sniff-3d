@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AssetLoader, LoadedAssets } from './AssetLoader';
 import { InputManager } from './InputManager';
 import { ForestWorld } from '../world/ForestWorld';
-import { Dog } from '../entities/Dog';
+import { DogEntity } from '../entities/DogEntity';
 import { ScentSystem } from '../systems/ScentSystem';
 import { HUD } from '../ui/HUD';
 import { HomeScreen } from '../ui/HomeScreen';
@@ -21,7 +21,7 @@ export class Game {
   private inputManager!: InputManager;
 
   private world!: ForestWorld;
-  private dog!: Dog;
+  private dog!: DogEntity;
   private scentSystem!: ScentSystem;
 
   private hud!: HUD;
@@ -71,7 +71,7 @@ export class Game {
     this.world = new ForestWorld(this.scene, this.assets, this.isLowEnd);
 
     // Create dog
-    this.dog = new Dog(this.assets.dog!);
+    this.dog = new DogEntity();
     this.scene.add(this.dog.getMesh());
 
     // Create scent system

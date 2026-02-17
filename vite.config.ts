@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: '/sniff-3d/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
